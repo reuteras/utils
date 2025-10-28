@@ -1,0 +1,7 @@
+obsidian_vault_path: "~/vault"
+readwise_token_env: "READWISE_TOKEN"
+similarity_threshold: 80
+
+auto_tags:
+  - pattern: "CVE-(\\d{4}-\\d+)"
+    tag_format: "CVE/{match}"
