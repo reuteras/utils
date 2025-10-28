@@ -14,8 +14,8 @@ dependencies = [
 ]
 
 [project.scripts]
-readwise-tag-sync = "readwise_tag_sync:main"
-obsidian-auto-tagger = "obsidian_auto_tagger:main"
+readwise-tag-sync = "obsidian_tools.readwise_tag_sync:main"
+obsidian-auto-tagger = "obsidian_tools.obsidian_auto_tagger:main"
 
 [tool.setuptools]
-py-modules = ["readwise_tag_sync", "obsidian_auto_tagger", "tag_utils"]
+packages = ["obsidian_tools"]

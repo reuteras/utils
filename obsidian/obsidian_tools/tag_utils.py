@@ -13,6 +13,32 @@ from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
 LOGGER_NAME = "obsidian_tools"
 
+_PACKAGE_ROOT = Path(__file__).resolve().parent
+_PROJECT_ROOT = _PACKAGE_ROOT.parent
+
+__all__ = [
+    "LOGGER_NAME",
+    "compose_markdown",
+    "default_config_path",
+    "ensure_directory",
+    "ensure_frontmatter",
+    "find_markdown_files",
+    "find_tags_in_text",
+    "get_env_token",
+    "get_frontmatter_tags",
+    "load_config",
+    "package_root",
+    "parse_frontmatter",
+    "project_root",
+    "read_markdown",
+    "replace_tag_in_text",
+    "resolve_config_path",
+    "set_frontmatter_tags",
+    "setup_logging",
+    "similarity_threshold",
+    "write_markdown",
+]
+
 _yaml = YAML()
 _yaml.preserve_quotes = True
 _yaml.indent(mapping=2, sequence=4, offset=2)
@@ -20,6 +46,21 @@ _yaml.default_flow_style = False
 
 _FRONTMATTER_PATTERN = re.compile(r"^---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
 _TAG_PATTERN = re.compile(r"(?<![\w/])#([A-Za-z0-9_./-]+)")
+
+
+def package_root() -> Path:
+    """Return the filesystem location of the installed package."""
+    return _PACKAGE_ROOT
+
+
+def project_root() -> Path:
+    """Return the root directory of the project distribution."""
+    return _PROJECT_ROOT
+
+
+def default_config_path() -> Path:
+    """Return the preferred location of the user-editable config file."""
+    return _PROJECT_ROOT / "config.yaml"
 
 
 def setup_logging(verbose: bool = False) -> logging.Logger:
@@ -47,7 +88,7 @@ def resolve_config_path(config_path: Path) -> Path:
             logger.info(
                 "Configuration file %s not found; using default template %s",
                 candidate,
-                fallback.name,
+                fallback,
             )
             return fallback
 

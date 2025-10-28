@@ -9,7 +9,8 @@ from typing import Dict, List, Optional, Sequence, Set
 
 import re
 
-from tag_utils import (
+from .tag_utils import (
+    default_config_path,
     ensure_frontmatter,
     find_markdown_files,
     get_frontmatter_tags,
@@ -34,7 +35,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--config",
         type=Path,
-        default=Path(__file__).resolve().parent / "config.yaml",
+        default=default_config_path(),
         help="Path to the configuration YAML file",
     )
     parser.add_argument(
