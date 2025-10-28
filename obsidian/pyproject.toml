@@ -1,0 +1,14 @@
+[project]
+name = "obsidian-tools"
+version = "0.1.0"
+description = "Scripts for Readwise/Obsidian tag synchronization and auto-tagging"
+requires-python = ">=3.11"
+dependencies = [
+    "rapidfuzz>=3.0.0",
+    "ruamel.yaml>=0.18.0",
+    "requests>=2.31.0",
+]
+
+[project.scripts]
+readwise-tag-sync = "readwise_tag_sync:main"
+obsidian-auto-tagger = "obsidian_auto_tagger:main"
