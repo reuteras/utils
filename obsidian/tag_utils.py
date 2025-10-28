@@ -60,8 +60,7 @@ def resolve_config_path(config_path: Path) -> Path:
 
 def load_config(config_path: Path) -> Dict[str, object]:
     """Load the YAML configuration file."""
-    resolved = resolve_config_path(config_path)
-    with resolved.open("r", encoding="utf-8") as fh:
+    with config_path.expanduser().open("r", encoding="utf-8") as fh:
         data = _yaml.load(fh) or {}
     if not isinstance(data, dict):
         raise ValueError(f"Configuration at {config_path} must be a mapping")
