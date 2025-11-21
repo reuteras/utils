@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: |
           export PATH="$HOME/.cargo/bin:$PATH"
-          uv sync --all-extras
+          uv sync --project=obsidian --all-extras
 
       # Run Linter against code base #
       - name: Lint Code Base
