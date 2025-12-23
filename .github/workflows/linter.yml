@@ -56,4 +56,5 @@ jobs:
           VALIDATE_PYTHON_PYLINT: false
           VALIDATE_PYTHON_BLACK: false
           VALIDATE_PYTHON_PYINK: false
+          VALIDATE_SHELL_SHFMT: false
           VALIDATE_YAML_PRETTIER: false
