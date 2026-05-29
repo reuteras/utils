@@ -5,6 +5,8 @@
 
 set -euo pipefail
 
+export PATH="${PATH}:/home/linuxbrew/.linuxbrew/bin"
+
 AUDITOR_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Mark notifications as read after fetching so they don't re-trigger
