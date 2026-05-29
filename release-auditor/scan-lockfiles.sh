@@ -45,7 +45,6 @@ scan_lockfile() {
   local lockfile="$1"
   local filename
   filename="$(basename "$lockfile")"
-  local findings=""
 
   # osv-scanner supports these lockfile formats natively
   local osv_supported=(
@@ -70,15 +69,18 @@ scan_lockfile() {
   done
 
   if $supported; then
-    # Run osv-scanner; capture output; non-zero exit means vulns found
-    findings=$(osv-scanner --lockfile "$lockfile" --format table 2>&1 || true)
+    local output exit_code=0
+    output=$(osv-scanner --lockfile "$lockfile" --format table 2>&1) || exit_code=$?
+    case $exit_code in
+      0) ;;                              # clean — print nothing
+      1) echo "$output" ;;              # vulnerabilities found
+      *) echo "SCAN_ERROR: $output" ;;  # parse or tool failure
+    esac
   else
     # Fallback: parse the lockfile manually and query OSV per package.
     # Currently handles: uv.lock, mix.lock, Package.resolved
-    findings=$(fallback_scan "$lockfile")
+    fallback_scan "$lockfile"
   fi
-
-  echo "$findings"
 }
 
 # ── Fallback scanner for formats osv-scanner doesn't support ─────────────────
@@ -139,7 +141,7 @@ fallback_scan() {
 
 print_report() {
   local owner="$1" repo="$2" tag="$3" lockfile_dir="$4" expires="$5"
-  local has_findings=false
+  local has_findings=false has_errors=false
 
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo "LOCKFILE SCAN: ${owner}/${repo} @ ${tag}"
@@ -176,6 +178,11 @@ print_report() {
 
     if [[ -z "$findings" || "$findings" =~ ^[[:space:]]*$ ]]; then
       echo "  Result:   No vulnerabilities found"
+    elif [[ "$findings" == SCAN_ERROR:* ]]; then
+      has_errors=true
+      echo "  Result:   SCAN ERROR"
+      echo ""
+      echo "${findings#SCAN_ERROR: }" | sed 's/^/    /'
     else
       has_findings=true
       echo "  Result:   VULNERABILITIES FOUND"
@@ -187,6 +194,8 @@ print_report() {
   echo ""
   if $has_findings; then
     echo "  VERDICT: FINDINGS DETECTED — review above"
+  elif $has_errors; then
+    echo "  VERDICT: SCAN ERROR — check tool compatibility"
   else
     echo "  VERDICT: CLEAN"
   fi
