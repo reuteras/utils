@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-export PATH="${PATH}:/home/linuxbrew/.linuxbrew/bin"
+PATH="${PATH}:/home/linuxbrew/.linuxbrew/bin"
 
 AUDITOR_DIR="$(cd "$(dirname "$0")" && pwd)"
 

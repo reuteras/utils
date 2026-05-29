@@ -13,6 +13,7 @@ set -euo pipefail
 AUDITOR_DIR="$(cd "$(dirname "$0")" && pwd)"
 SEEN="$AUDITOR_DIR/state/seen.json"
 TODAY="$(date -u +%Y-%m-%d)"
+PATH="${PATH}:/home/linuxbrew/.linuxbrew/bin"
 
 # ── Dependency checks ────────────────────────────────────────────────────────
 
@@ -130,7 +131,6 @@ fallback_scan() {
       ;;
 
     *)
-      output="  [SKIP] No scanner available for $filename"
       ;;
   esac
 

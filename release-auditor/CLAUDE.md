@@ -105,7 +105,9 @@ curl -sL \
   -o "{AUDITOR_DIR}/lockfiles/{owner}__{repo}__{tag}/{lockfile_path}"
 ```
 
-Save ALL of the following if present at the release tag:
+Save ONLY the following lockfiles if present at the release tag. Do NOT save
+manifests (package.json, go.mod, pyproject.toml, Cargo.toml, etc.) — only
+the resolved/pinned lockfiles listed below:
 - package-lock.json, yarn.lock, pnpm-lock.yaml
 - requirements.txt, requirements-dev.txt, requirements-prod.txt, poetry.lock,
   Pipfile.lock, uv.lock
