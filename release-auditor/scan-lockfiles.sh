@@ -195,12 +195,12 @@ print_report() {
       has_errors=true
       echo "  Result:   SCAN ERROR"
       echo ""
-      echo "${findings#SCAN_ERROR: }" | sed 's/^/    /'
+      while IFS= read -r _ln; do echo "    $_ln"; done <<< "${findings#SCAN_ERROR: }"
     else
       has_findings=true
       echo "  Result:   VULNERABILITIES FOUND"
       echo ""
-      echo "$findings" | sed 's/^/    /'
+      while IFS= read -r _ln; do echo "    $_ln"; done <<< "$findings"
     fi
   done
 
