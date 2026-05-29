@@ -232,15 +232,30 @@ main() {
     REPORT_DIR="$AUDITOR_DIR/reports/${owner}__${repo}__${tag}"
     REPORT_FILE="$REPORT_DIR/scan-${TODAY}.txt"
     mkdir -p "$REPORT_DIR"
-    print_report "$owner" "$repo" "$tag" "$lockfile_dir" "${expires:0:10}" \
-      | tee -a "$REPORT_FILE"
-    echo "Report saved: $REPORT_FILE"
+
+    local tmp
+    tmp="$(mktemp)"
+    print_report "$owner" "$repo" "$tag" "$lockfile_dir" "${expires:0:10}" > "$tmp"
+
+    # Find the most recent previous scan report for comparison
+    local prev
+    prev="$(find "$REPORT_DIR" -name "scan-*.txt" ! -name "scan-${TODAY}.txt" \
+      2>/dev/null | sort | tail -1)"
+
+    # Print to stdout (triggering cron email) only if content changed.
+    # Exclude the "Scan date:" line since it changes every day.
+    if [[ -z "$prev" ]] || \
+       ! diff <(grep -v '^Scan date:' "$prev") \
+              <(grep -v '^Scan date:' "$tmp") > /dev/null 2>&1; then
+      cat "$tmp"
+      echo "Report saved: $REPORT_FILE"
+    fi
+
+    mv "$tmp" "$REPORT_FILE"
 
   done < <(jq -r 'keys[]' "$SEEN")
 
-  if [[ $active -eq 0 ]]; then
-    echo "No active scan windows. Run audit.sh on a release to start monitoring."
-  fi
+  return 0
 }
 
 main "$@"

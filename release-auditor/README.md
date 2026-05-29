@@ -101,9 +101,13 @@ report per release with any newly published CVEs.
 Run the notification poller hourly and the lockfile scanner daily:
 
 ```
-0 * * * * /path/to/release-auditor/poll-notifications.sh >> /tmp/release-audits.log 2>&1
-0 7 * * * /path/to/release-auditor/scan-lockfiles.sh >> /tmp/lockfile-scans.log 2>&1
+*/10 * * * * /path/to/release-auditor/poll-notifications.sh
+0 7 * * * /path/to/release-auditor/scan-lockfiles.sh
 ```
+
+Both scripts are silent when there is nothing new to report, so cron will only
+send an email when a new release audit or changed lockfile findings are
+detected. Reports are always saved to the `reports/` directory regardless.
 
 ## Report format
 
