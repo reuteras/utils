@@ -60,6 +60,17 @@ scan_lockfile() {
     [[ "$filename" == "$m" ]] && return 0
   done
 
+  # uv.lock: prefer uv audit if available
+  if [[ "$filename" == "uv.lock" ]] && command -v uv &>/dev/null; then
+    local output exit_code=0
+    output=$(uv audit --lockfile "$lockfile" 2>&1) || exit_code=$?
+    case $exit_code in
+      0) return 0 ;;
+      1) echo "$output"; return 0 ;;
+    esac
+    # Non-0/1 means uv audit failed (e.g. no project context) — fall through to fallback
+  fi
+
   # osv-scanner supports these lockfile formats natively
   local osv_supported=(
     "package-lock.json"
@@ -92,7 +103,7 @@ scan_lockfile() {
     esac
   else
     # Fallback: parse the lockfile manually and query OSV per package.
-    # Currently handles: uv.lock, mix.lock, Package.resolved
+    # Currently handles: uv.lock (without uv), mix.lock, Package.resolved
     fallback_scan "$lockfile"
   fi
 }
@@ -259,22 +270,50 @@ main() {
     tmp="$(mktemp)"
     print_report "$owner" "$repo" "$tag" "$lockfile_dir" "${expires:0:10}" > "$tmp"
 
-    # Compare against today's report if it already exists (same-day re-runs),
-    # otherwise against the most recent previous day's report.
-    local prev
+    # Find comparison baseline:
+    # - Same-day re-run: compare against today's existing file
+    # - First run of the day: compare against most recent previous scan
+    local prev prev_date=""
     if [[ -f "$REPORT_FILE" ]]; then
       prev="$REPORT_FILE"
     else
       prev="$(find "$REPORT_DIR" -name "scan-*.txt" 2>/dev/null | sort | tail -1)"
+      if [[ -n "$prev" ]]; then
+        local prev_base
+        prev_base="$(basename "$prev")"
+        prev_date="${prev_base#scan-}"
+        prev_date="${prev_date%.txt}"
+      fi
     fi
 
-    # Print to stdout (triggering cron email) only if content changed.
-    # Exclude the "Scan date:" line since it changes every day.
-    if [[ -z "$prev" ]] || \
-       ! diff <(grep -v '^Scan date:' "$prev") \
-              <(grep -v '^Scan date:' "$tmp") > /dev/null 2>&1; then
+    if [[ -z "$prev" ]]; then
+      # First ever scan for this release — show full report
       cat "$tmp"
       echo "Report saved: $REPORT_FILE"
+    else
+      # Show only what changed since the last scan (excluding the date line)
+      local diff_out
+      diff_out=$(diff \
+        <(grep -v '^Scan date:' "$prev") \
+        <(grep -v '^Scan date:' "$tmp") || true)
+
+      if [[ -n "$diff_out" ]]; then
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "LOCKFILE SCAN CHANGES: ${owner}/${repo} @ ${tag}"
+        local date_line="Scan date:     ${TODAY}"
+        [[ -n "$prev_date" ]] && date_line+="    Changed since: ${prev_date}"
+        echo "$date_line"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        while IFS= read -r _ln; do
+          case "$_ln" in
+            '> '*) echo "  + ${_ln:2}" ;;
+            '< '*) echo "  - ${_ln:2}" ;;
+          esac
+        done <<< "$diff_out"
+        echo ""
+        echo "Report saved: $REPORT_FILE"
+      fi
     fi
 
     mv "$tmp" "$REPORT_FILE"
