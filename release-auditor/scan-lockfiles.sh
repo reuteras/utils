@@ -47,6 +47,19 @@ scan_lockfile() {
   local filename
   filename="$(basename "$lockfile")"
 
+  # Manifest files — not lockfiles, skip silently
+  local manifests=(
+    "package.json"
+    "go.mod"
+    "pyproject.toml"
+    "Cargo.toml"
+    "setup.py"
+    "setup.cfg"
+  )
+  for m in "${manifests[@]}"; do
+    [[ "$filename" == "$m" ]] && return 0
+  done
+
   # osv-scanner supports these lockfile formats natively
   local osv_supported=(
     "package-lock.json"
@@ -246,10 +259,14 @@ main() {
     tmp="$(mktemp)"
     print_report "$owner" "$repo" "$tag" "$lockfile_dir" "${expires:0:10}" > "$tmp"
 
-    # Find the most recent previous scan report for comparison
+    # Compare against today's report if it already exists (same-day re-runs),
+    # otherwise against the most recent previous day's report.
     local prev
-    prev="$(find "$REPORT_DIR" -name "scan-*.txt" ! -name "scan-${TODAY}.txt" \
-      2>/dev/null | sort | tail -1)"
+    if [[ -f "$REPORT_FILE" ]]; then
+      prev="$REPORT_FILE"
+    else
+      prev="$(find "$REPORT_DIR" -name "scan-*.txt" 2>/dev/null | sort | tail -1)"
+    fi
 
     # Print to stdout (triggering cron email) only if content changed.
     # Exclude the "Scan date:" line since it changes every day.
