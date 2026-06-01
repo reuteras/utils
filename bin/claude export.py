@@ -282,7 +282,7 @@ def conversation_to_markdown(chat: dict, inline_scripts: bool = False) -> str:
             lines.append(f"### 🧑 User\n\n{text}\n")
         elif sender == "assistant":
             body_parts = ([text] if text else []) + script_parts
-            lines.append(f"### 🤖 Claude\n\n" + "\n\n".join(body_parts) + "\n")
+            lines.append("### 🤖 Claude\n\n" + "\n\n".join(body_parts) + "\n")
 
     if links:
         lines.append("---\n\n### 🔗 Referenced Links\n")
