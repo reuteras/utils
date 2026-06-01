@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#   "questionary>=2.0",
+# ]
+# ///
 """
 claude_export.py — Export Claude.ai conversations to Markdown.
 
 Usage:
-    python3 claude_export.py conversations.json          # list all conversations
-    python3 claude_export.py conversations.json 2        # export by index
+    uv run "claude export.py" conversations.json --tui    # interactive TUI (recommended)
+
+    python3 claude_export.py conversations.json           # list all conversations
+    python3 claude_export.py conversations.json 2         # export by index
     python3 claude_export.py conversations.json "Mounjaro"  # export by name search
-    python3 claude_export.py conversations.json --all    # export all conversations
+    python3 claude_export.py conversations.json --all     # export all conversations
     python3 claude_export.py conversations.json 2 -o ~/notes/mounjaro.md  # custom path
-    python3 claude_export.py conversations.json 2 --scripts ./scripts/   # save scripts to dir
-    python3 claude_export.py conversations.json 2 --inline-scripts       # scripts inline in markdown
+    python3 claude_export.py conversations.json 2 --scripts ./scripts/    # save scripts to dir
+    python3 claude_export.py conversations.json 2 --inline-scripts        # scripts inline in markdown
     python3 claude_export.py conversations.json 2 --scripts ./s/ --inline-scripts  # both
 """
 
@@ -356,6 +364,99 @@ def safe_filename(name: str) -> str:
     return name[:80] or "untitled"
 
 
+# ── TUI ────────────────────────────────────────────────────────────────────────
+
+
+def _build_choices(chats: list[dict]) -> list:
+    import questionary
+
+    choices = []
+    for i, chat in enumerate(chats):
+        name = chat.get("name") or "(untitled)"
+        date = format_date(chat.get("created_at", ""))
+        msgs = [m for m in chat.get("chat_messages", []) if clean_text(get_text_block(m)[0])]
+        title = name[:55] + ("…" if len(name) > 55 else "")
+        label = f"{i:>4}  {date:<12}  {len(msgs):>4} msgs  {title}"
+        choices.append(questionary.Choice(title=label, value=i))
+    return choices
+
+
+def _prompt_scripts_options() -> tuple[bool, "Path | None"]:
+    import questionary
+
+    inline = questionary.confirm("Include scripts inline in markdown?", default=False).ask()
+    if inline is None:
+        return False, None
+    separate = questionary.confirm("Export scripts as separate files?", default=False).ask()
+    if separate is None:
+        return inline, None
+    scripts_dir = None
+    if separate:
+        dir_str = questionary.text("Scripts output directory:", default="./scripts").ask()
+        if dir_str is None:
+            return inline, None
+        scripts_dir = Path(dir_str)
+    return inline, scripts_dir
+
+
+def _prompt_output_dir() -> "Path | None":
+    import questionary
+
+    dir_str = questionary.text(
+        "Markdown output directory:", default=str(Path.cwd())
+    ).ask()
+    return Path(dir_str) if dir_str is not None else None
+
+
+def run_tui(chats: list[dict]) -> None:
+    try:
+        import questionary
+    except ImportError:
+        print("Error: questionary is required for --tui. Install with: pip install questionary")
+        print("Or run via: uv run \"claude export.py\" ... --tui")
+        sys.exit(1)
+
+    if not chats:
+        print("No conversations found in export file.")
+        return
+
+    choices = _build_choices(chats)
+    selected_indices: list[int] | None = questionary.checkbox(
+        "Select conversations to export  (Space = toggle, Enter = confirm, Ctrl-C = quit):",
+        choices=choices,
+    ).ask()
+
+    if not selected_indices:
+        print("No conversations selected.")
+        return
+
+    selected = [(i, chats[i]) for i in selected_indices]
+
+    inline_scripts = False
+    scripts_dir: Path | None = None
+    if any(extract_scripts(chat) for _, chat in selected):
+        print(f"\n{sum(1 for _, c in selected if extract_scripts(c))} of the selected conversation(s) contain scripts.\n")
+        inline_scripts, scripts_dir = _prompt_scripts_options()
+        if inline_scripts is None:
+            return
+
+    out_dir = _prompt_output_dir()
+    if out_dir is None:
+        return
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"\nExporting {len(selected)} conversation(s) to {out_dir}/\n")
+    for i, chat in selected:
+        name = chat.get("name") or f"conversation_{i}"
+        slug = safe_filename(name)
+        date = format_date(chat.get("created_at", ""))
+        filename = f"{date}_{slug}.md"
+        chat_scripts_dir = (scripts_dir / f"{i:03d}_{slug}") if scripts_dir else None
+        export_chat(chat, out_dir / filename, inline_scripts=inline_scripts, scripts_dir=chat_scripts_dir)
+
+    print(f"\nDone. Exported {len(selected)} conversation(s).")
+
+
 # ── CLI ────────────────────────────────────────────────────────────────────────
 
 
@@ -395,6 +496,11 @@ def main() -> None:
         action="store_true",
         help="Render scripts as fenced code blocks inline in the markdown export",
     )
+    parser.add_argument(
+        "--tui",
+        action="store_true",
+        help="Launch interactive TUI for selecting and exporting conversations (requires uv run)",
+    )
     args = parser.parse_args()
 
     if not args.file.exists():
@@ -402,6 +508,10 @@ def main() -> None:
         sys.exit(1)
 
     chats = load_export(args.file)
+
+    if args.tui:
+        run_tui(chats)
+        return
 
     if not args.selector and not args.all:
         list_conversations(chats)
