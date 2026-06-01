@@ -9,7 +9,7 @@
 claude_export.py — Export Claude.ai conversations to Markdown.
 
 Usage:
-    uv run "claude export.py" conversations.json --tui    # interactive TUI (recommended)
+    uv run "claude_export.py" conversations.json --tui    # interactive TUI (recommended)
 
     python3 claude_export.py conversations.json           # list all conversations
     python3 claude_export.py conversations.json 2         # export by index
@@ -29,13 +29,30 @@ from datetime import datetime
 from pathlib import Path
 
 _EXT_LANG: dict[str, str] = {
-    ".py": "python", ".sh": "bash", ".bash": "bash", ".zsh": "bash",
-    ".js": "javascript", ".ts": "typescript", ".jsx": "javascript", ".tsx": "typescript",
-    ".go": "go", ".rs": "rust", ".rb": "ruby", ".java": "java",
-    ".c": "c", ".cpp": "cpp", ".h": "c",
-    ".md": "markdown", ".yaml": "yaml", ".yml": "yaml",
-    ".json": "json", ".toml": "toml", ".ini": "ini",
-    ".html": "html", ".css": "css", ".sql": "sql",
+    ".py": "python",
+    ".sh": "bash",
+    ".bash": "bash",
+    ".zsh": "bash",
+    ".js": "javascript",
+    ".ts": "typescript",
+    ".jsx": "javascript",
+    ".tsx": "typescript",
+    ".go": "go",
+    ".rs": "rust",
+    ".rb": "ruby",
+    ".java": "java",
+    ".c": "c",
+    ".cpp": "cpp",
+    ".h": "c",
+    ".md": "markdown",
+    ".yaml": "yaml",
+    ".yml": "yaml",
+    ".json": "json",
+    ".toml": "toml",
+    ".ini": "ini",
+    ".html": "html",
+    ".css": "css",
+    ".sql": "sql",
 }
 
 
@@ -43,6 +60,7 @@ _EXT_LANG: dict[str, str] = {
 
 
 def ext_to_lang(path: str) -> str:
+    """Get language based on extension."""
     return _EXT_LANG.get(Path(path).suffix.lower(), "")
 
 
@@ -50,6 +68,7 @@ def ext_to_lang(path: str) -> str:
 
 
 def load_export(path: Path) -> list[dict]:
+    """Load export JSON file."""
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
     if isinstance(data, dict):
@@ -104,15 +123,30 @@ _HEREDOC_B = re.compile(r"cat\s+>\s+(\S+)\s+<<\s+'([A-Z]+)'\n(.*?)\n\2", re.DOTA
 
 
 def _scripts_from_bash(command: str) -> list[dict]:
+    """Get scripts."""
     found = []
     for m in _HEREDOC_A.finditer(command):
         # groups: marker, path, content
         path, content = m.group(2), m.group(3)
-        found.append({"filename": Path(path).name, "path": path, "content": content, "source": "bash_heredoc"})
+        found.append(
+            {
+                "filename": Path(path).name,
+                "path": path,
+                "content": content,
+                "source": "bash_heredoc",
+            }
+        )
     for m in _HEREDOC_B.finditer(command):
         # groups: path, marker, content
         path, content = m.group(1), m.group(3)
-        found.append({"filename": Path(path).name, "path": path, "content": content, "source": "bash_heredoc"})
+        found.append(
+            {
+                "filename": Path(path).name,
+                "path": path,
+                "content": content,
+                "source": "bash_heredoc",
+            }
+        )
     return found
 
 
@@ -135,7 +169,14 @@ def extract_scripts(chat: dict) -> list[dict]:
                     key = (path, content[:80])
                     if key not in seen:
                         seen.add(key)
-                        scripts.append({"filename": Path(path).name, "path": path, "content": content, "source": "create_file"})
+                        scripts.append(
+                            {
+                                "filename": Path(path).name,
+                                "path": path,
+                                "content": content,
+                                "source": "create_file",
+                            }
+                        )
 
             elif name == "bash_tool":
                 for entry in _scripts_from_bash(inp.get("command", "")):
@@ -164,13 +205,16 @@ def format_inline_script(block: dict) -> str | None:
         parts = []
         for entry in _scripts_from_bash(inp.get("command", "")):
             lang = ext_to_lang(entry["path"])
-            parts.append(f"**`{entry['filename']}`**\n\n```{lang}\n{entry['content']}\n```")
+            parts.append(
+                f"**`{entry['filename']}`**\n\n```{lang}\n{entry['content']}\n```"
+            )
         return "\n\n".join(parts) if parts else None
 
     return None
 
 
 def save_scripts(scripts: list[dict], out_dir: Path) -> None:
+    """Save scripts to files."""
     out_dir.mkdir(parents=True, exist_ok=True)
     counts: dict[str, int] = {}
     for entry in scripts:
@@ -234,6 +278,7 @@ def apply_citations(text: str, citations: list[dict]) -> str:
 
 
 def format_date(iso: str) -> str:
+    """Format date."""
     try:
         return datetime.fromisoformat(iso.replace("Z", "+00:00")).strftime("%Y-%m-%d")
     except Exception:
@@ -241,6 +286,7 @@ def format_date(iso: str) -> str:
 
 
 def conversation_to_markdown(chat: dict, inline_scripts: bool = False) -> str:
+    """Create markdown from conversation."""
     title = chat.get("name") or "Untitled"
     created = format_date(chat.get("created_at", ""))
     messages = chat.get("chat_messages", [])
@@ -296,6 +342,7 @@ def conversation_to_markdown(chat: dict, inline_scripts: bool = False) -> str:
 
 
 def list_conversations(chats: list[dict]) -> None:
+    """List conversations."""
     if not chats:
         print("No conversations found in export file.")
         return
@@ -346,6 +393,7 @@ def export_chat(
     inline_scripts: bool = False,
     scripts_dir: Path | None = None,
 ) -> None:
+    """Export chats."""
     md = conversation_to_markdown(chat, inline_scripts=inline_scripts)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(md, encoding="utf-8")
@@ -359,6 +407,7 @@ def export_chat(
 
 
 def safe_filename(name: str) -> str:
+    """Make filename safe."""
     name = re.sub(r"[^\w\s-]", "", name).strip()
     name = re.sub(r"\s+", "_", name)
     return name[:80] or "untitled"
@@ -374,7 +423,9 @@ def _build_choices(chats: list[dict]) -> list:
     for i, chat in enumerate(chats):
         name = chat.get("name") or "(untitled)"
         date = format_date(chat.get("created_at", ""))
-        msgs = [m for m in chat.get("chat_messages", []) if clean_text(get_text_block(m)[0])]
+        msgs = [
+            m for m in chat.get("chat_messages", []) if clean_text(get_text_block(m)[0])
+        ]
         title = name[:55] + ("…" if len(name) > 55 else "")
         label = f"{i:>4}  {date:<12}  {len(msgs):>4} msgs  {title}"
         choices.append(questionary.Choice(title=label, value=i))
@@ -384,15 +435,21 @@ def _build_choices(chats: list[dict]) -> list:
 def _prompt_scripts_options() -> tuple[bool, "Path | None"]:
     import questionary
 
-    inline = questionary.confirm("Include scripts inline in markdown?", default=False).ask()
+    inline = questionary.confirm(
+        "Include scripts inline in markdown?", default=False
+    ).ask()
     if inline is None:
         return False, None
-    separate = questionary.confirm("Export scripts as separate files?", default=False).ask()
+    separate = questionary.confirm(
+        "Export scripts as separate files?", default=False
+    ).ask()
     if separate is None:
         return inline, None
     scripts_dir = None
     if separate:
-        dir_str = questionary.text("Scripts output directory:", default="./scripts").ask()
+        dir_str = questionary.text(
+            "Scripts output directory:", default="./scripts"
+        ).ask()
         if dir_str is None:
             return inline, None
         scripts_dir = Path(dir_str)
@@ -412,8 +469,10 @@ def run_tui(chats: list[dict]) -> None:
     try:
         import questionary
     except ImportError:
-        print("Error: questionary is required for --tui. Install with: pip install questionary")
-        print("Or run via: uv run \"claude export.py\" ... --tui")
+        print(
+            "Error: questionary is required for --tui. Install with: pip install questionary"
+        )
+        print('Or run via: uv run "claude export.py" ... --tui')
         sys.exit(1)
 
     if not chats:
@@ -435,7 +494,9 @@ def run_tui(chats: list[dict]) -> None:
     inline_scripts = False
     scripts_dir: Path | None = None
     if any(extract_scripts(chat) for _, chat in selected):
-        print(f"\n{sum(1 for _, c in selected if extract_scripts(c))} of the selected conversation(s) contain scripts.\n")
+        print(
+            f"\n{sum(1 for _, c in selected if extract_scripts(c))} of the selected conversation(s) contain scripts.\n"
+        )
         inline_scripts, scripts_dir = _prompt_scripts_options()
         if inline_scripts is None:
             return
@@ -452,7 +513,12 @@ def run_tui(chats: list[dict]) -> None:
         date = format_date(chat.get("created_at", ""))
         filename = f"{date}_{slug}.md"
         chat_scripts_dir = (scripts_dir / f"{i:03d}_{slug}") if scripts_dir else None
-        export_chat(chat, out_dir / filename, inline_scripts=inline_scripts, scripts_dir=chat_scripts_dir)
+        export_chat(
+            chat,
+            out_dir / filename,
+            inline_scripts=inline_scripts,
+            scripts_dir=chat_scripts_dir,
+        )
 
     print(f"\nDone. Exported {len(selected)} conversation(s).")
 
@@ -546,4 +612,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    """Main function."""
     main()
