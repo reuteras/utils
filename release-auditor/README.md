@@ -14,7 +14,7 @@ checks. Claude also saves all lockfiles from the release tag to disk.
 lockfiles with `osv-scanner` to catch advisories published after the initial
 audit.
 
-```
+```text
 GitHub notifications
        ↓
   audit.sh  →  Claude Code (CLAUDE.md)
@@ -29,7 +29,7 @@ GitHub notifications
 
 ## Directory structure
 
-```
+```text
 release-auditor/
 ├── CLAUDE.md               # Claude Code instructions
 ├── audit.sh                # One-shot release auditor (uses Claude)
@@ -51,13 +51,13 @@ release-auditor/
 
 ## Prerequisites
 
-| Tool | Purpose | Install |
-|---|---|---|
-| `claude` | Claude Code CLI | `npm install -g @anthropic-ai/claude-code` |
-| `gh` | GitHub CLI | `brew install gh` |
-| `osv-scanner` | Lockfile CVE scanning | `brew install osv-scanner` |
-| `jq` | JSON processing | `brew install jq` |
-| `curl` | HTTP requests | pre-installed on macOS |
+| Tool          | Purpose               | Install                                    |
+|---------------|-----------------------|--------------------------------------------|
+| `claude`      | Claude Code CLI       | `npm install -g @anthropic-ai/claude-code` |
+| `gh`          | GitHub CLI            | `brew install gh`                          |
+| `osv-scanner` | Lockfile CVE scanning | `brew install osv-scanner`                 |
+| `jq`          | JSON processing       | `brew install jq`                          |
+| `curl`        | HTTP requests         | pre-installed on macOS                     |
 
 Authenticate before first use:
 
@@ -100,7 +100,7 @@ report per release with any newly published CVEs.
 
 Run the notification poller hourly and the lockfile scanner daily:
 
-```
+```text
 */10 * * * * /path/to/release-auditor/poll-notifications.sh
 0 7 * * * /path/to/release-auditor/scan-lockfiles.sh
 ```
@@ -113,7 +113,7 @@ detected. Reports are always saved to the `reports/` directory regardless.
 
 ### audit.sh output
 
-```
+```text
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 RELEASE AUDIT: owner/repo @ v1.2.3
 Released:      2026-05-29
@@ -133,7 +133,7 @@ RED FLAGS
 
 ### scan-lockfiles.sh output
 
-```
+```text
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 LOCKFILE SCAN: owner/repo @ v1.2.3
 Scan date:     2026-05-31    Monitoring until: 2026-06-05
@@ -148,17 +148,17 @@ Scan date:     2026-05-31    Monitoring until: 2026-06-05
 
 ## Supported lockfile formats
 
-| Ecosystem | Files |
-|---|---|
-| npm | `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` |
-| Python | `poetry.lock`, `requirements*.txt`, `Pipfile.lock`, `uv.lock` |
-| Go | `go.sum` |
-| Rust | `Cargo.lock` |
-| PHP | `composer.lock` |
-| Ruby | `Gemfile.lock` |
-| Elixir | `mix.lock` |
-| Dart/Flutter | `pubspec.lock` |
-| Swift | `Package.resolved` |
+| Ecosystem    | Files                                                         |
+|--------------|---------------------------------------------------------------|
+| npm          | `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`            |
+| Python       | `poetry.lock`, `requirements*.txt`, `Pipfile.lock`, `uv.lock` |
+| Go           | `go.sum`                                                      |
+| Rust         | `Cargo.lock`                                                  |
+| PHP          | `composer.lock`                                               |
+| Ruby         | `Gemfile.lock`                                                |
+| Elixir       | `mix.lock`                                                    |
+| Dart/Flutter | `pubspec.lock`                                                |
+| Swift        | `Package.resolved`                                            |
 
 `osv-scanner` handles most formats natively. `uv.lock`, `mix.lock`, and
 `Package.resolved` fall back to per-package OSV API queries.

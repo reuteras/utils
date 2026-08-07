@@ -28,4 +28,3 @@ Before inserting a USB memory stick the green led will be on. While the cleaning
 ## TODO
 
 * Reformat the memory stick with sfdisk?
-
