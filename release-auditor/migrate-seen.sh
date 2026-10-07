@@ -7,6 +7,24 @@
 
 set -euo pipefail
 
+usage() {
+  cat <<'EOF'
+Usage: migrate-seen.sh [-h | --help]
+
+One-time migration of state/seen.json entries written before lockfile saving
+was added (plain timestamp strings) to the current object format, with a
+follow-up scan window of 7 days from the original audit time.
+
+Safe to run multiple times; entries already in object format are left as is.
+EOF
+}
+
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+  "") ;;
+  *) usage >&2; exit 2 ;;
+esac
+
 AUDITOR_DIR="$(cd "$(dirname "$0")" && pwd)"
 SEEN="$AUDITOR_DIR/state/seen.json"
 

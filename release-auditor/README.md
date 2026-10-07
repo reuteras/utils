@@ -108,6 +108,8 @@ export ANTHROPIC_API_KEY=sk-ant-...   # or add to ~/.zshrc
 
 ## Usage
 
+Every script prints its usage with `-h` or `--help`.
+
 ### Audit a single release
 
 ```bash

@@ -198,4 +198,28 @@ main() {
   return 0
 }
 
+usage() {
+  cat <<'EOF'
+Usage: scan-lockfiles.sh [-h | --help]
+
+Scans the lockfiles saved by audit.sh with osv-scanner, for every release or
+comparison in state/seen.json whose 7-day follow-up window has not expired.
+
+The first scan of a release prints the full report; later scans print only
+what changed since the previous scan, so the script is silent when nothing
+is new. Reports are always saved to reports/<entry>/scan-YYYY-MM-DD.txt.
+
+Cron example (daily at 07:00):
+  0 7 * * * /path/to/release-auditor/scan-lockfiles.sh
+
+Requires: jq, osv-scanner (v2).
+EOF
+}
+
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+  "") ;;
+  *) usage >&2; exit 2 ;;
+esac
+
 main "$@"

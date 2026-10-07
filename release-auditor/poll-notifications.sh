@@ -13,6 +13,28 @@ AUDITOR_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=SCRIPTDIR/lib.sh
 source "$AUDITOR_DIR/lib.sh"
 
+usage() {
+  cat <<'EOF'
+Usage: poll-notifications.sh [-h | --help]
+
+Reads your unread GitHub notifications and runs audit.sh for every release
+notification that has not been audited yet (see state/seen.json). Only one
+poller runs at a time; a run that finds another still active exits silently.
+Exits non-zero if any audit failed.
+
+Cron example (every 10 minutes):
+  */10 * * * * /path/to/release-auditor/poll-notifications.sh
+
+Requires: gh (authenticated), jq, plus everything audit.sh needs.
+EOF
+}
+
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+  "") ;;
+  *) usage >&2; exit 2 ;;
+esac
+
 require_cmds gh jq
 
 POLL_LOCK="$AUDITOR_DIR/state/.poll.lock"

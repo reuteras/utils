@@ -39,20 +39,40 @@ HIGH_SIGNAL_RE='^\.github/(workflows|actions)/|(^|/)(package\.json|package-lock\
 WORKFLOW_RE='^\.github/workflows/'
 LOCKFILE_RE='^(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|requirements(-dev|-prod)?\.txt|poetry\.lock|Pipfile\.lock|uv\.lock|go\.sum|Cargo\.lock|composer\.lock|Gemfile\.lock|mix\.lock|pubspec\.lock|Package\.resolved)$'
 
-usage() {
-  cat >&2 <<'EOF'
+usage() {  # usage [exit-code] — help on stdout for 0, otherwise on stderr
+  local code="${1:-2}"
+  {
+    cat <<'EOF'
 Usage:
   audit.sh <github-release-url>               audit a release against its predecessor
   audit.sh <owner/repo> <from-ref> <to-ref>   audit the changes between two versions
+  audit.sh -h | --help                        show this help
 
 Refs may be tags, branches or commit SHAs.
+
+Examples:
+  audit.sh https://github.com/chhoumann/quickadd/releases/tag/2.12.3
+  audit.sh chhoumann/quickadd 2.11.0 2.12.3
+
+Releases already recorded in state/seen.json are skipped silently; version
+comparisons always run. The report is printed and saved to reports/, the
+evidence it was based on is saved next to it, and lockfiles at the target
+version are saved to lockfiles/ for 7 days of follow-up scanning.
+
+Requires: gh (authenticated), jq, curl, claude, osv-scanner.
 EOF
-  exit 2
+  } >&"$(( code == 0 ? 1 : 2 ))"
+  exit "$code"
 }
 
 # ── Argument parsing ─────────────────────────────────────────────────────────
 
 OWNER="" REPO="" FROM_REF="" TO_REF="" MODE=""
+
+case "${1:-}" in
+  -h|--help) usage 0 ;;
+  -*) usage ;;
+esac
 
 parse_release_url() {
   local url="${1%/}" raw_tag
