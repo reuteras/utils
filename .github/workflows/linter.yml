@@ -10,11 +10,13 @@ on:
 
 permissions:
   contents: read
-  statuses: write
 
 # Set the Job #
 jobs:
   build:
+    permissions:
+      contents: read
+      statuses: write
     # Name the Job
     name: Lint Code Base
     # Set the agent to run on
@@ -51,3 +53,23 @@ jobs:
           VALIDATE_GIT_COMMITLINT: false
           SAVE_SUPER_LINTER_SUMMARY: true
           ENABLE_GITHUB_PULL_REQUEST_SUMMARY_COMMENT: false
+
+  # The required check (ruleset required-checks) that Dependabot auto-merge
+  # waits for; see dev-docs docs/github.md.
+  checks-passed:
+    name: Checks passed
+    if: always()
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Check job results
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          for result in $RESULTS; do
+            if [ "$result" != "success" ]; then
+              echo "A job ended with: $result"
+              exit 1
+            fi
+          done
